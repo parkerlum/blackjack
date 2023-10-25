@@ -3,29 +3,31 @@ import random
 from PIL import Image, ImageTk
 
 card_values = {
-'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-'J': 10, 'Q': 10, 'K': 10, 'A': 11
+    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+    'J': 10, 'Q': 10, 'K': 10, 'A': 11
 }
+
 suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
 ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
 player_hand_frame = None
 dealer_hand_frame = None
-player_hand = []
+player_hand = [[]]
 dealer_hand = []
-player_score = 0
+player_score = [0]
 dealer_score = 0
-current_bet = 0
+current_bet = [0]
 current_stack = 0
+current_player_hand = 0 #the current hand that's being played
 
 def start_game():
     global player_score, dealer_score, stack, num_decks, deck, player_hand, dealer_hand
-    player_hand = []
-    player_score = 0
+    player_hand = [[]]
+    player_score = [0]
     dealer_hand = []
     dealer_score = 0
     deck = [(rank, suit) for suit in suits for rank in ranks] * num_decks
     random.shuffle(deck)
-    player_score_label.config(text=f"Player Score: {player_score}")
+    player_score_label.config(text=f"Player Score: {player_score[0]}")
     dealer_score_label.config(text=f"Dealer Score: {dealer_score}")
     main_frame.pack_forget()  # Hide main screen
     place_bet()
@@ -33,13 +35,14 @@ def start_game():
 
 def setup_game_screen():
     global current_bet, current_stack
-    current_bet = int(bet_entry.get())
-    if current_bet > current_stack:
+    current_bet[0] = int(bet_entry.get())
+    if current_bet[0] > current_stack:
         bet_error_label.config(text="Error: Bet cannot be greater than current stack")
         return
-    elif current_bet <= 0:
+    elif current_bet[0] <= 0:
         bet_error_label.config(text="Error: Bet cannot be less than or equal to 0")
         return
+    current_stack -= current_bet[0]
     bet_screen.pack_forget() 
     deal_initial_cards()
     update_labels()
@@ -50,11 +53,11 @@ def setup_game_screen():
     
 def deal_initial_cards():
     global deck, player_hand, player_score, dealer_hand, dealer_score
-    player_card_1 = deal_card()
-    player_card_2 = deal_card()
-    player_hand.append(player_card_1)
-    player_hand.append(player_card_2)
-    player_score += card_values[player_card_1[0]] + card_values[player_card_2[0]]
+    player_card_1 = ('8', 'Hearts')  # Set the first card to '8 of Hearts'
+    player_card_2 = ('8', 'Diamonds')
+    player_hand[0].append(player_card_1)
+    player_hand[0].append(player_card_2)
+    player_score[0] += card_values[player_card_1[0]] + card_values[player_card_2[0]]
     dealer_card_1 = deal_card()
     dealer_card_2 = deal_card()
     dealer_hand.append(dealer_card_1)
@@ -64,9 +67,10 @@ def deal_initial_cards():
 def play_again():
     global player_score, dealer_score, player_hand, dealer_hand
     dealer_hand = []
-    player_hand = []
-    player_score = 0
+    player_hand = [[]]
+    player_score = [0]
     dealer_score = 0
+    current_player_hand = 0
     update_result_label()
     game_screen.pack_forget()
     place_bet()
@@ -104,57 +108,83 @@ def edit_post_game_buttons():
     play_again_button.config(state=tk.NORMAL)
 
 def hit():
-    global player_score, card_values, player_hand
+    global player_score, card_values, player_hand, current_player_hand
     card = deal_card()
-    player_hand.append(card)
-    player_score += card_values[card[0]]
+    player_hand[current_player_hand].append(card)
+    player_score[current_player_hand] += card_values[card[0]]
     update_player_hand_label()
     update_player_score_label()
     display_player_hand()
-    if player_score > 21:
+    if player_score[current_player_hand] > 21:
         global current_stack
-        update_result_label("Player Bust! Dealer Wins.")
-        edit_post_game_buttons()
-        current_stack -= current_bet
+        if current_player_hand == len(player_hand) - 1:
+            calculate_result()
+            edit_post_game_buttons()
+        else:
+            current_player_hand += 1
+        current_stack -= current_bet[current_player_hand]
+        
 def split():
-    pass
+    global player_hand, player_score, current_player_hand, current_bet, current_stack
+    if current_stack < current_bet[0]:
+        update_result_label("Insufficient funds to split.")
+    else:
+        if len(player_hand[current_player_hand]) == 2 and player_hand[current_player_hand][0][0] == player_hand[current_player_hand][1][0]:
+            new_hand = [player_hand[current_player_hand].pop()]  # Create a new hand and move one card
+            player_hand.append(new_hand)
+            player_score[current_player_hand] -= card_values[new_hand[0][0]]  # Update scores
+            player_score.append(card_values[new_hand[0][0]])
+            current_bet.append(current_bet[current_player_hand])
+            current_stack -= current_bet[0]
+            update_player_hand_label()
+            display_player_hand()
+        else:
+            update_result_label("Cannot split this hand.")
 def double_down():
     pass
 def surrender():
     pass
 def stand():
-    global dealer_score, dealer_hand
-    hit_button.config(state=tk.DISABLED) 
-    stand_button.config(state=tk.DISABLED)  
-    def deal_next_card():
-        global dealer_score
-        if dealer_score < 17:
-            card = deal_card()
-            dealer_score += card_values[card[0]]
-            dealer_hand.append(card)
-            update_dealer_score_label()
-            update_dealer_hand_label()
-            display_dealer_hand()
-            root.after(500, deal_next_card)  # Add a 1-second delay between card reveals
-        else:
-            display_dealer_hand()
-            reveal_result()
-    display_dealer_hand()
-    root.after(500, deal_next_card)
-
-def reveal_result():
-    global current_bet, current_stack
-    if dealer_score > 21 or dealer_score < player_score:
-        edit_post_game_buttons()
-        current_stack += current_bet
-        update_result_label("Player Wins!")
-    elif dealer_score == player_score:
-        edit_post_game_buttons()
-        update_result_label("It's a Tie!")
+    global dealer_score, dealer_hand, current_player_hand
+    if current_player_hand == len(player_hand) - 1:
+        hit_button.config(state=tk.DISABLED) 
+        stand_button.config(state=tk.DISABLED)  
+        def deal_next_card():
+            global dealer_score
+            if dealer_score < 17:
+                card = deal_card()
+                dealer_score += card_values[card[0]]
+                dealer_hand.append(card)
+                update_dealer_score_label()
+                update_dealer_hand_label()
+                display_dealer_hand()
+                root.after(500, deal_next_card)  # Add a 1-second delay between card reveals
+            else:
+                display_dealer_hand()
+                reveal_result()
+        display_dealer_hand()
+        root.after(500, deal_next_card)
     else:
-        edit_post_game_buttons()
-        current_stack -= current_bet
-        update_result_label("Dealer Wins.")
+        current_player_hand += 1
+        update_result_label(f"Standing on hand {current_player_hand}")
+
+def calculate_result():
+    global current_bet, current_stack, current_player_hand, player_score, dealer_score, current_stack
+    if dealer_score > 21:
+        for i, score  in enumerate(player_score):
+            if player_score > 21:
+                current_stack -= current_bet[i]
+            else:
+                current_stack += current_bet[i]
+    else:
+        for i, score in enumerate(player_score):
+            if player_score > 21:
+                current_stack -= current_bet[i]
+            elif player_score > dealer_score:
+                current_stack += current_bet[i]
+            elif player_score < dealer_score:
+                current_stack -= current_bet[i]
+    edit_post_game_buttons()
 
 def deal_card():
     return deck.pop()
@@ -168,13 +198,13 @@ def start_game_from_main():
 def display_player_hand():
     for label in player_hand_labels:
         label.destroy()  # Destroy existing labels
-
-    for i, (rank, suit) in enumerate(player_hand):
-        card_image = ImageTk.PhotoImage(card_images[(rank, suit)])
-        label = tk.Label(player_hand_frame, image=card_image)
-        label.image = card_image
-        label.grid(row=0, column=i, padx=5)  # Use grid layout
-        player_hand_labels.append(label)
+    for i in range(len(player_hand)):
+        for j, (rank, suit) in enumerate(player_hand[i]):
+            card_image = ImageTk.PhotoImage(card_images[(rank, suit)])
+            label = tk.Label(player_hand_frame, image=card_image)
+            label.image = card_image
+            label.grid(row=i, column=j, padx=5)  # Use grid layout
+            player_hand_labels.append(label)
 
 def display_dealer_hand():
     for label in dealer_hand_labels:
@@ -295,23 +325,27 @@ current_stack_label.pack()
 result_label = tk.Label(game_screen, text="")
 result_label.pack()
 
-hit_button = tk.Button(game_screen, text="Hit", command=hit)
-hit_button.pack(side=tk.LEFT)
+#button frames
+button_frame = tk.Frame(game_screen)
+button_frame.pack()
 
-stand_button = tk.Button(game_screen, text="Stand", command=stand)
-stand_button.pack(side=tk.LEFT)
+hit_button = tk.Button(button_frame, text="Hit", command=hit)
+hit_button.pack(side=tk.LEFT, padx=5, pady=10)
 
-split_button = tk.Button(game_screen, text="Split", command=split)
-split_button.pack(side=tk.LEFT)
+stand_button = tk.Button(button_frame, text="Stand", command=stand)
+stand_button.pack(side=tk.LEFT, padx=5, pady=10)
 
-double_down_button = tk.Button(game_screen, text="Double")
-double_down_button.pack(side=tk.LEFT)
+split_button = tk.Button(button_frame, text="Split", command=split)
+split_button.pack(side=tk.LEFT, padx=5, pady=10)
 
-surrender_button = tk.Button(game_screen, text="Surrender")
-surrender_button.pack(side=tk.LEFT)
+double_down_button = tk.Button(button_frame, text="Double")
+double_down_button.pack(side=tk.LEFT, padx=5, pady=10)
 
-play_again_button = tk.Button(game_screen, text="Play Again", command=play_again, state=tk.DISABLED)
-play_again_button.pack()
+surrender_button = tk.Button(button_frame, text="Surrender")
+surrender_button.pack(side=tk.LEFT, padx=5, pady=10)
+
+play_again_button = tk.Button(button_frame, text="Play Again", command=play_again, state=tk.DISABLED)
+play_again_button.pack(side=tk.LEFT, padx=5, pady=10)
 
 card_images = {}
 for suit in suits:
