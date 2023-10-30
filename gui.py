@@ -1,349 +1,327 @@
 import tkinter as tk
-import random
 from PIL import Image, ImageTk
 
-card_values = {
-'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
-'J': 10, 'Q': 10, 'K': 10, 'A': 11
-}
-suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
-ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
-player_hand_frame = None
-dealer_hand_frame = None
-player_hand = []
-dealer_hand = []
-player_score = 0
-dealer_score = 0
-current_bet = 0
-current_stack = 0
+class BlackjackGUI:
+    def __init__(self, root, game):
+        self.root = root
+        self.game = game
+        self.card_images = {}
+        self.suits = ['Hearts', 'Diamonds', 'Clubs', 'Spades']
+        self.ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+        self.player_hand_frame = None
+        self.dealer_hand_frame = None
+        self.player_hand_labels = []
+        self.dealer_hand_labels = []
 
-def start_game():
-    global player_score, dealer_score, stack, num_decks, deck, player_hand, dealer_hand
-    player_hand = []
-    player_score = 0
-    dealer_hand = []
-    dealer_score = 0
-    deck = [(rank, suit) for suit in suits for rank in ranks] * num_decks
-    random.shuffle(deck)
-    player_score_label.config(text=f"Player Score: {player_score}")
-    dealer_score_label.config(text=f"Dealer Score: {dealer_score}")
-    main_frame.pack_forget()  # Hide main screen
-    place_bet()
+        self.setup_main_screen()  # Call the function to set up the main screen
+          # Use main_frame instead of game_screen
+        self.game_screen = tk.Frame(self.root)  # Create game_screen frame
+        self.current_stack = tk.IntVar()
+        self.current_bet = tk.IntVar()
+
+    def setup_main_screen(self):
+        self.root.title("Blackjack")
+
+        # Main screen
+        self.main_frame = tk.Frame(self.root)
+        self.main_frame.grid(row=0, column=0)
+
+        self.stack_label = self.create_label("Enter Stack:", self.main_frame, 0, 0)
+        self.stack_entry = self.create_entry(self.main_frame, 0, 1)
+
+        self.decks_label = self.create_label("Enter Number of Decks:", self.main_frame, 1, 0)
+        self.decks_entry = self.create_entry(self.main_frame, 1, 1)
+
+        self.start_button = self.create_button("Start Game", self.start_game_from_main, self.main_frame, 2, 0, 2)
+       
+    def setup_bet_screen(self):
+        # Bet Screen
+        self.main_frame.grid_forget()
+        self.bet_screen = tk.Frame(self.root)
+
+        bet_label = self.create_label("Enter intended bet:", self.bet_screen, 0, 0)
+        bet_entry = self.create_entry(self.bet_screen, 0, 1)
+
+        bet_error_label = self.create_label("", self.bet_screen, 1, 0, fg="red")
+        current_stack_label_bet = self.create_label(f"Current Stack: {self.current_stack.get()}", self.bet_screen, 2, 0, columnspan=2)
+        def set_current_bet():
+            bet = bet_entry.get()
+            if self.game.validate_bet(int(bet)):
+                self.game.current_bet = bet
+                self.setup_game_screen()
+            else:
+                bet_error_label.config(text="Invalid bet. Please try again.", fg="red")
+        
     
+        play_button = self.create_button("Play", set_current_bet, self.bet_screen, 3, 0, 2)
 
-def setup_game_screen():
-    global current_bet, current_stack
-    current_bet = int(bet_entry.get())
-    if current_bet > current_stack:
-        bet_error_label.config(text="Error: Bet cannot be greater than current stack")
-        return
-    elif current_bet <= 0:
-        bet_error_label.config(text="Error: Bet cannot be less than or equal to 0")
-        return
-    bet_screen.pack_forget() 
-    deal_initial_cards()
-    update_labels()
-    enable_buttons()
-    display_player_hand()
-    display_initial_dealer_hand()
-    game_screen.pack()
-    
-def deal_initial_cards():
-    global deck, player_hand, player_score, dealer_hand, dealer_score
-    player_card_1 = deal_card()
-    player_card_2 = deal_card()
-    player_hand.append(player_card_1)
-    player_hand.append(player_card_2)
-    player_score += card_values[player_card_1[0]] + card_values[player_card_2[0]]
-    dealer_card_1 = deal_card()
-    dealer_card_2 = deal_card()
-    dealer_hand.append(dealer_card_1)
-    dealer_hand.append(dealer_card_2)
-    dealer_score += card_values[dealer_card_1[0]] + card_values[dealer_card_2[0]]
-
-def play_again():
-    global player_score, dealer_score, player_hand, dealer_hand
-    dealer_hand = []
-    player_hand = []
-    player_score = 0
-    dealer_score = 0
-    update_result_label()
-    game_screen.pack_forget()
-    place_bet()
-
-def place_bet():
-    update_current_stack_label_bet()
-    bet_screen.pack()
-
-def update_labels():
-    update_player_score_label()
-    update_dealer_score_label()
-    update_current_bet_label()
-    update_current_stack_label()
-    update_current_stack_label_bet()
-    update_dealer_hand_label()
-    update_player_hand_label()
-    display_dealer_hand()
-    display_player_hand()
+        self.bet_screen.grid(row=0, column=0)
 
 
-def enable_buttons():
-    hit_button.config(state=tk.NORMAL)
-    stand_button.config(state=tk.NORMAL)
-    split_button.config(state=tk.NORMAL)
-    double_down_button.config(state=tk.NORMAL)
-    surrender_button.config(state=tk.NORMAL)
-    play_again_button.config(state=tk.DISABLED)
+    def setup_game_screen(self):
+        # Game screen
+        self.bet_screen.grid_forget()
+        self.game_screen = tk.Frame(self.root)
+        
+        # Labels
+        self.player_score_label = self.create_label(f"Player Score: {self.game.player_score} ", self.game_screen, 0, 0)
+        self.player_hand_label = self.create_label(f"Player Hand: {self.game.player_hand} ", self.game_screen, 1, 0)
+        self.dealer_score_label = self.create_label(f"Dealer Score: {self.game.dealer_score}: ", self.game_screen, 2, 0)
+        self.dealer_hand_label = self.create_label(f"Dealer Hand: {self.game.dealer_hand} ", self.game_screen, 3, 0)
+        self.current_bet_label = self.create_label(f"Current Bet: {self.game.current_bet} ", self.game_screen, 4, 0)
+        self.current_stack_label = self.create_label(f"Current Stack: {self.game.current_stack} ", self.game_screen, 5, 0)
+        self.result_label = self.create_label("", self.game_screen, 6, 0)
+        self.game_screen.grid(row=0, column=0)
+        # Buttons
+        button_frame = tk.Frame(self.game_screen)
+        self.hit_button = self.create_button("Hit", self.hit, button_frame, 0, 0, padx=5, pady=10)
+        self.stand_button = self.create_button("Stand", self.stand, button_frame, 0, 1, padx=5, pady=10)
+        self.split_button = self.create_button("Split", self.split, button_frame, 0, 2, padx=5, pady=10)
+        self.double_down_button = self.create_button("Double", self.double_down, button_frame, 0, 3, padx=5, pady=10)
+        self.surrender_button = self.create_button("Surrender", self.surrender, button_frame, 0, 4, padx=5, pady=10)
+        self.play_again_button = self.create_button("Play Again", self.play_again, button_frame, 0, 5, padx=5, pady=10, state=tk.DISABLED)
+        button_frame.grid(row=7, column=0)
 
-def edit_post_game_buttons():
-    hit_button.config(state=tk.DISABLED)
-    stand_button.config(state=tk.DISABLED)
-    split_button.config(state=tk.DISABLED)
-    double_down_button.config(state=tk.DISABLED)
-    surrender_button.config(state=tk.DISABLED)
-    play_again_button.config(state=tk.NORMAL)
+        # Player and dealer hands
+        self.player_hand_frame = self.create_frame(self.game_screen)
+        self.dealer_hand_frame = self.create_frame(self.game_screen)
+        self.player_hand_frame.grid(row=10, column=0)
+        self.dealer_hand_frame.grid(row=11, column=0)
 
-def hit():
-    global player_score, card_values, player_hand
-    card = deal_card()
-    player_hand.append(card)
-    player_score += card_values[card[0]]
-    update_player_hand_label()
-    update_player_score_label()
-    display_player_hand()
-    if player_score > 21:
-        global current_stack
-        update_result_label("Player Bust! Dealer Wins.")
-        edit_post_game_buttons()
-        current_stack -= current_bet
-def split():
-    pass
-def double_down():
-    pass
-def surrender():
-    pass
-def stand():
-    global dealer_score, dealer_hand
-    hit_button.config(state=tk.DISABLED) 
-    stand_button.config(state=tk.DISABLED)  
-    def deal_next_card():
-        global dealer_score
-        if dealer_score < 17:
-            card = deal_card()
-            dealer_score += card_values[card[0]]
-            dealer_hand.append(card)
-            update_dealer_score_label()
-            update_dealer_hand_label()
-            display_dealer_hand()
-            root.after(500, deal_next_card)  # Add a 1-second delay between card reveals
+        self.load_card_images()
+
+        # Update player and dealer hands after dealing initial cards
+        self.display_player_hand()
+        self.display_initial_dealer_hand()
+
+        self.display_labels()
+
+        # Start the GUI event loop
+        self.root.mainloop()
+
+    def game_end(self, callbackCheck):
+        if callbackCheck:
+            self.edit_post_game_buttons()
+
+    def create_label(self, text, parent, row=None, column=None, columnspan=1, fg="black"):
+        label = tk.Label(parent, text=text, fg=fg)
+        label.grid(row=row, column=column, columnspan=columnspan)
+        return label
+
+    def create_entry(self, parent, row, column):
+        entry = tk.Entry(parent)
+        entry.grid(row=row, column=column)
+        return entry
+
+    def create_button(self, text, command, parent, row, column, padx=0, pady=0, state=tk.NORMAL):
+        button = tk.Button(parent, text=text, command=command, state=state)
+        button.grid(row=row, column=column, padx=padx, pady=pady)
+        return button
+
+    def create_frame(self, parent):
+        frame = tk.Frame(parent)
+        frame.grid(row=0, column=0)
+        return frame
+
+    def load_card_images(self):
+        for suit in self.suits:
+            for rank in self.ranks:
+                image_path = f"images/{rank}_{suit}.png"
+                self.card_images[(rank, suit)] = Image.open(image_path)
+        self.card_images['back'] = Image.open("images/card_back.png")
+
+    def display_labels(self):
+        self.player_score_label.grid(row=0, column=0)
+        self.player_hand_label.grid(row=1, column=0)
+        self.dealer_score_label.grid(row=2, column=0)
+        self.dealer_hand_label.grid(row=3, column=0)
+        self.current_bet_label.grid(row=4, column=0)
+        self.current_stack_label.grid(row=5, column=0)
+        self.result_label.grid(row=6, column=0)
+
+
+    def display_player_hand(self):
+        for label in self.player_hand_labels:
+            label.destroy()
+        for i in range(len(self.game.player_hand)):
+            for j, (rank, suit) in enumerate(self.game.player_hand[i]):
+                card_image = ImageTk.PhotoImage(self.card_images[(rank, suit)])
+                label = tk.Label(self.player_hand_frame, image=card_image)
+                label.image = card_image
+                label.grid(row=i, column=j, padx=5)
+                self.player_hand_labels.append(label)
+
+    def display_initial_dealer_hand(self):
+        for label in self.dealer_hand_labels:
+            label.destroy()
+
+        first_card = self.game.dealer_hand[0]
+        card_image = ImageTk.PhotoImage(self.card_images[first_card])
+        label = tk.Label(self.dealer_hand_frame, image=card_image)
+        label.image = card_image
+        label.grid(row=0, column=0, padx=5)
+        self.dealer_hand_labels.append(label)
+
+        face_down_image = ImageTk.PhotoImage(self.card_images['back'])
+        label = tk.Label(self.dealer_hand_frame, image=face_down_image)
+        label.image = face_down_image
+        label.grid(row=0, column=1, padx=5)
+        self.dealer_hand_labels.append(label)
+
+    def update_dealer_score_label(self):
+        self.dealer_score_label.config(text=f"Dealer Score: {self.game.dealer_score}")
+
+    def update_dealer_hand_label(self):
+        self.dealer_hand_label.config(text=f"Dealer Hand: {self.game.dealer_hand}")
+
+    def update_player_score_label(self):
+        self.player_score_label.config(text=f"Player Score: {self.game.player_score}")
+
+    def update_player_hand_label(self):
+        self.player_hand_label.config(text=f"Player Hand: {self.game.player_hand}")
+
+    def update_current_bet_label(self):
+        self.current_bet_label.config(text=f"Current Bet: {self.game.current_bet}")
+
+    def update_current_stack_label(self):
+        self.current_stack_label.config(text=f"Current Stack: {self.current_stack.get()}")
+
+    def update_current_stack_label_bet(self):
+        self.current_stack_label_bet.config(text=f"Current Stack: {self.current_stack.get()}")
+
+    def update_result_label(self, label=None):
+        if label is not None:
+            self.result_label.config(text=f"{label}")
         else:
-            display_dealer_hand()
-            reveal_result()
-    display_dealer_hand()
-    root.after(500, deal_next_card)
+            self.result_label.config(text="")
 
-def reveal_result():
-    global current_bet, current_stack
-    if dealer_score > 21 or dealer_score < player_score:
-        edit_post_game_buttons()
-        current_stack += current_bet
-        update_result_label("Player Wins!")
-    elif dealer_score == player_score:
-        edit_post_game_buttons()
-        update_result_label("It's a Tie!")
-    else:
-        edit_post_game_buttons()
-        current_stack -= current_bet
-        update_result_label("Dealer Wins.")
+    def start_game_from_main(self):
+        self.current_stack.set(int(self.stack_entry.get()))
+        num_decks = int(self.decks_entry.get())
+        self.game.start_game(num_decks)
+        self.main_frame.grid_forget()  # Hide the main frame
+        self.setup_bet_screen() 
+        
+    def hit(self):
+        self.game.hit()
+        self.update_player_hand_label()
+        self.update_player_score_label()
+        self.display_player_hand()
+        if self.game.player_score[self.game.current_player_hand] > 21:
+            self.calculate_result()
+            self.game_end(self.game.game_end_callback)
+        else:
+            self.current_stack.set(self.current_stack.get() - self.game.current_bet[self.game.current_player_hand])
 
-def deal_card():
-    return deck.pop()
+    def split(self):
+        self.game.split()
+        self.update_player_hand_label()
+        self.display_player_hand()
 
-def start_game_from_main():
-    global current_stack, num_decks
-    current_stack = int(stack_entry.get())
-    num_decks = int(decks_entry.get())
-    start_game()
+    def double_down(self):
+        self.game.double_down()
+        self.update_player_hand_label()
+        self.display_player_hand()
 
-def display_player_hand():
-    for label in player_hand_labels:
-        label.destroy()  # Destroy existing labels
+    def surrender(self):
+        self.game.surrender()
+        self.update_result_label("You surrendered!")
 
-    for i, (rank, suit) in enumerate(player_hand):
-        card_image = ImageTk.PhotoImage(card_images[(rank, suit)])
-        label = tk.Label(player_hand_frame, image=card_image)
+    def stand(self):
+        self.game.stand()
+        if self.game.current_player_hand == len(self.game.player_hand) - 1:
+            self.hit_button.config(state=tk.DISABLED)
+            self.stand_button.config(state=tk.DISABLED)
+
+            def deal_next_card():
+                if self.game.dealer_score < 17:
+                    card = self.game.deck.deal_card()
+                    self.game.dealer_score += card_values[card[0]]
+                    self.game.dealer_hand.append(card)
+                    self.update_dealer_score_label()
+                    self.update_dealer_hand_label()
+                    self.display_dealer_hand()
+                    self.root.after(500, deal_next_card)
+                else:
+                    self.display_dealer_hand()
+                    self.reveal_result()
+
+            self.display_dealer_hand()
+            self.root.after(500, deal_next_card)
+        else:
+            self.game.current_player_hand += 1
+            self.update_result_label(f"Standing on hand {self.game.current_player_hand}")
+
+    def calculate_result(self):
+        if self.game.dealer_score > 21:
+            for i, score in enumerate(self.game.player_score):
+                if self.game.player_score[i] > 21:
+                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
+                else:
+                    self.current_stack.set(self.current_stack.get() + self.game.current_bet[i])
+        else:
+            for i, score in enumerate(self.game.player_score):
+                if self.game.player_score[i] > 21:
+                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
+                elif self.game.player_score[i] > self.game.dealer_score:
+                    self.current_stack.set(self.current_stack.get() + self.game.current_bet[i])
+                elif self.game.player_score[i] < self.game.dealer_score:
+                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
+        self.edit_post_game_buttons()
+
+    def play_again(self):
+        self.game.play_again()
+        self.update_result_label()
+        self.game_screen.pack_forget()
+        self.setup_bet_screen()
+
+    def edit_post_game_buttons(self):
+        self.hit_button.config(state=tk.DISABLED)
+        self.stand_button.config(state=tk.DISABLED)
+        self.split_button.config(state=tk.DISABLED)
+        self.double_down_button.config(state=tk.DISABLED)
+        self.surrender_button.config(state=tk.DISABLED)
+        self.play_again_button.config(state=tk.NORMAL)
+
+    def display_dealer_hand(self):
+        for label in self.dealer_hand_labels:
+            label.destroy()
+        for i, (rank, suit) in enumerate(self.game.dealer_hand):
+            card_image = ImageTk.PhotoImage(self.card_images[(rank, suit)])
+            label = tk.Label(self.dealer_hand_frame, image=card_image)
+            label.image = card_image
+            label.grid(row=0, column=i, padx=5)
+            self.dealer_hand_labels.append(label)
+
+    def display_player_hand(self):
+        for label in self.player_hand_labels:
+            label.destroy()
+        for i in range(len(self.game.player_hand)):
+            for j, (rank, suit) in enumerate(self.game.player_hand[i]):
+                card_image = ImageTk.PhotoImage(self.card_images[(rank, suit)])
+                label = tk.Label(self.player_hand_frame, image=card_image)
+                label.image = card_image
+                label.grid(row=i, column=j, padx=5)
+                self.player_hand_labels.append(label)
+
+    def display_initial_dealer_hand(self):
+        for label in self.dealer_hand_labels:
+            label.destroy()
+
+        first_card = self.game.dealer_hand[0]
+        card_image = ImageTk.PhotoImage(self.card_images[first_card])
+        label = tk.Label(self.dealer_hand_frame, image=card_image)
         label.image = card_image
-        label.grid(row=0, column=i, padx=5)  # Use grid layout
-        player_hand_labels.append(label)
+        label.grid(row=0, column=0, padx=5)
+        self.dealer_hand_labels.append(label)
 
-def display_dealer_hand():
-    for label in dealer_hand_labels:
-        label.destroy()  # Destroy existing labels
-    for i, (rank, suit) in enumerate(dealer_hand):
-        card_image = ImageTk.PhotoImage(card_images[(rank, suit)])
-        label = tk.Label(dealer_hand_frame, image=card_image)
-        label.image = card_image
-        label.grid(row=0, column=i, padx=5)  # Use grid layout
-        dealer_hand_labels.append(label)
-
-def display_initial_dealer_hand():
-    for label in dealer_hand_labels:
-        label.destroy()  
-
-    first_card = dealer_hand[0]
-    card_image = ImageTk.PhotoImage(card_images[first_card])
-    label = tk.Label(dealer_hand_frame, image=card_image)
-    label.image = card_image
-    label.grid(row=0, column=0, padx=5)  # Use grid layout
-    dealer_hand_labels.append(label)
-
-    face_down_image = ImageTk.PhotoImage(card_images['back'])  # Assuming you have an image for the face-down card
-    label = tk.Label(dealer_hand_frame, image=face_down_image)
-    label.image = face_down_image
-    label.grid(row=0, column=1, padx=5)  # Use grid layout
-    dealer_hand_labels.append(label)
-
-def update_dealer_score_label():
-    dealer_score_label.config(text=f"Dealer Score: {dealer_score}")
-
-def update_dealer_hand_label():
-    dealer_hand_label.config(text=f"Dealer Hand: {dealer_hand}")
-
-def update_player_score_label():
-    player_score_label.config(text=f"Player Score: {player_score}")
-
-def update_player_hand_label():
-    player_hand_label.config(text=f"Player Score: {player_hand}")
-
-def update_current_bet_label():
-    current_bet_label.config(text=f"Current Bet: {current_bet}")
-
-def update_current_stack_label():
-    current_stack_label.config(text=f"Current Stack: {current_stack}")
-
-def update_current_stack_label_bet():
-    current_stack_label_bet.config(text=f"Current Stack: {current_stack}")
-
-def update_result_label(label=None):
-    if label is not None:
-        result_label.config(text=f"{label}")
-    else:
-        result_label.config(text="")
-    
-# Create the main window
-root = tk.Tk()
-root.title("Blackjack")
-
-# Main screen
-main_frame = tk.Frame(root)
-main_frame.pack()
-
-stack_label = tk.Label(main_frame, text="Enter Stack:")
-stack_label.grid(row=0, column=0)
-
-stack_entry = tk.Entry(main_frame)
-stack_entry.grid(row=0, column=1)
-
-decks_label = tk.Label(main_frame, text="Enter Number of Decks:")
-decks_label.grid(row=1, column=0)
-
-decks_entry = tk.Entry(main_frame)
-decks_entry.grid(row=1, column=1)
-
-start_button = tk.Button(main_frame, text="Start Game", command=start_game_from_main)
-start_button.grid(row=2, columnspan=2)
-
-# Bet Screen
-bet_screen = tk.Frame(root)
-
-bet_label = tk.Label(bet_screen, text="Enter intended bet:")
-bet_label.grid(row=0, column=0)
-
-bet_entry = tk.Entry(bet_screen)
-bet_entry.grid(row=0, column=1)
-
-bet_error_label = tk.Label(bet_screen, text="", fg="red")
-bet_error_label.grid(row=1, column=0, columnspan=2)
-
-current_stack_label_bet = tk.Label(bet_screen, text=f"Current Stack: {current_stack}")
-current_stack_label_bet.grid(row=2, columnspan=2)  
-
-play_button = tk.Button(bet_screen, text="Play", command=setup_game_screen)
-play_button.grid(row=3, columnspan=2)
-
-# Game screen
-game_screen = tk.Frame(root)
-
-player_score_label = tk.Label(game_screen, text=f"Player Score: {player_score}")
-player_score_label.pack()
-
-player_hand_label = tk.Label(game_screen, text=f"Player Hand: {player_hand}")
-player_hand_label.pack()
-
-dealer_score_label = tk.Label(game_screen, text=f"Dealer Score: {dealer_score}")
-dealer_score_label.pack()
-
-dealer_hand_label = tk.Label(game_screen, text=f"Dealer Hand: {dealer_hand}")
-dealer_hand_label.pack()
-
-current_bet_label = tk.Label(game_screen, text=f"Current Bet: {current_bet}")
-current_bet_label.pack()
-
-current_stack_label = tk.Label(game_screen, text=f"Current Stack: {current_stack}")
-current_stack_label.pack()
-
-result_label = tk.Label(game_screen, text="")
-result_label.pack()
-
-hit_button = tk.Button(game_screen, text="Hit", command=hit)
-hit_button.pack(side=tk.LEFT)
-
-stand_button = tk.Button(game_screen, text="Stand", command=stand)
-stand_button.pack(side=tk.LEFT)
-
-split_button = tk.Button(game_screen, text="Split", command=split)
-split_button.pack(side=tk.LEFT)
-
-double_down_button = tk.Button(game_screen, text="Double")
-double_down_button.pack(side=tk.LEFT)
-
-surrender_button = tk.Button(game_screen, text="Surrender")
-surrender_button.pack(side=tk.LEFT)
-
-play_again_button = tk.Button(game_screen, text="Play Again", command=play_again, state=tk.DISABLED)
-play_again_button.pack()
-
-card_images = {}
-for suit in suits:
-    for rank in ranks:
-        image_path = f"images/{rank}_{suit}.png"
-        card_images[(rank, suit)] = Image.open(image_path)
-card_images['back'] = Image.open("images/card_back.png")
+        face_down_image = ImageTk.PhotoImage(self.card_images['back'])
+        label = tk.Label(self.dealer_hand_frame, image=face_down_image)
+        label.image = face_down_image
+        label.grid(row=0, column=1, padx=5)
+        self.dealer_hand_labels.append(label)
 
 
-# Create labels to display card images
-player_hand_labels = []
-for i in range(5):  # Create enough labels for up to 5 cards
-    label = tk.Label(game_screen, image=None)  # Placeholder image
-    label.pack(side=tk.LEFT)  # Pack labels side by side
-    player_hand_labels.append(label)
-
-dealer_hand_labels = []
-for i in range(5):
-    label = tk.Label(game_screen, image=None)  # Placeholder image
-    label.pack()
-    dealer_hand_labels.append(label)
-
-player_hand_frame = tk.Frame(game_screen)
-player_hand_frame.pack()
-
-dealer_hand_frame = tk.Frame(game_screen)
-dealer_hand_frame.pack()
-
-# Update player and dealer hands after dealing initial cards
-display_player_hand()
-display_dealer_hand()
-
-# Start the GUI event loop
-root.mainloop()
-
+if __name__ == "__main__":
+    root = tk.Tk()
+    gui = BlackjackGUI(root, game)
