@@ -1,4 +1,5 @@
 import random
+from re import A
 
 class BlackjackGame:
     def __init__(self):
@@ -92,26 +93,7 @@ class BlackjackGame:
         pass
 
     def stand(self):
-        if self.current_player_hand == len(self.player_hand) - 1:
-            self.hit_button.config(state=tk.DISABLED) 
-            self.stand_button.config(state=tk.DISABLED)  
-            def deal_next_card():
-                if self.dealer_score < 17:
-                    card = self.deal_card()
-                    self.dealer_score += self.card_values[card[0]]
-                    self.dealer_hand.append(card)
-                    self.update_dealer_score_label()
-                    self.update_dealer_hand_label()
-                    self.display_dealer_hand()
-                    self.root.after(500, deal_next_card)  # Add a 1-second delay between card reveals
-                else:
-                    self.display_dealer_hand()
-                    self.reveal_result()
-            self.display_dealer_hand()
-            self.root.after(500, deal_next_card)
-        else:
-            self.current_player_hand += 1
-            self.update_result_label(f"Standing on hand {self.current_player_hand}")
+        self.current_player_hand += 1
 
     def calculate_result(self):
         if self.dealer_score > 21:
