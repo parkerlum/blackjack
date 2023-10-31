@@ -16,8 +16,6 @@ class BlackjackGUI:
         self.setup_main_screen()  # Call the function to set up the main screen
           # Use main_frame instead of game_screen
         self.game_screen = tk.Frame(self.root)  # Create game_screen frame
-        self.current_stack = tk.IntVar()
-        self.current_bet = tk.IntVar()
 
     def setup_main_screen(self):
         self.root.title("Blackjack")
@@ -43,16 +41,15 @@ class BlackjackGUI:
         bet_entry = self.create_entry(self.bet_screen, 0, 1)
 
         bet_error_label = self.create_label("", self.bet_screen, 1, 0, fg="red")
-        current_stack_label_bet = self.create_label(f"Current Stack: {self.current_stack.get()}", self.bet_screen, 2, 0, columnspan=2)
+        current_stack_label_bet = self.create_label(f"Current Stack: {self.game.current_stack}", self.bet_screen, 2, 0, columnspan=2)
+
         def set_current_bet():
-            bet = bet_entry.get()
-            if self.game.validate_bet(int(bet)):
-                self.game.current_bet = bet
+            bet = int(bet_entry.get())
+            if self.game.validate_bet(bet):
                 self.setup_game_screen()
             else:
                 bet_error_label.config(text="Invalid bet. Please try again.", fg="red")
         
-    
         play_button = self.create_button("Play", set_current_bet, self.bet_screen, 3, 0, 2)
 
         self.bet_screen.grid(row=0, column=0)
@@ -99,9 +96,8 @@ class BlackjackGUI:
         # Start the GUI event loop
         self.root.mainloop()
 
-    def game_end(self, callbackCheck):
-        if callbackCheck:
-            self.edit_post_game_buttons()
+    def setup_post_game_screen(self):
+        pass
 
     def create_label(self, text, parent, row=None, column=None, columnspan=1, fg="black"):
         label = tk.Label(parent, text=text, fg=fg)
@@ -196,7 +192,7 @@ class BlackjackGUI:
             self.result_label.config(text="")
 
     def start_game_from_main(self):
-        self.current_stack.set(int(self.stack_entry.get()))
+        self.game.current_stack = int(self.stack_entry.get())
         num_decks = int(self.decks_entry.get())
         self.game.start_game(num_decks)
         self.main_frame.grid_forget()  # Hide the main frame
@@ -204,19 +200,11 @@ class BlackjackGUI:
         
     def hit(self):
         self.game.hit()
-        self.update_player_hand_label()
-        self.update_player_score_label()
-        self.display_player_hand()
-        if self.game.player_score[self.game.current_player_hand] > 21:
-            self.calculate_result()
-            self.game_end(self.game.game_end_callback)
-        else:
-            self.current_stack.set(self.current_stack.get() - self.game.current_bet[self.game.current_player_hand])
+        self.post_action_updates()
 
     def split(self):
         self.game.split()
-        self.update_player_hand_label()
-        self.display_player_hand()
+        self.post_action_updates()
 
     def double_down(self):
         self.game.double_down()
@@ -252,23 +240,14 @@ class BlackjackGUI:
             self.game.current_player_hand += 1
             self.update_result_label(f"Standing on hand {self.game.current_player_hand}")
 
-    def calculate_result(self):
-        if self.game.dealer_score > 21:
-            for i, score in enumerate(self.game.player_score):
-                if self.game.player_score[i] > 21:
-                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
-                else:
-                    self.current_stack.set(self.current_stack.get() + self.game.current_bet[i])
-        else:
-            for i, score in enumerate(self.game.player_score):
-                if self.game.player_score[i] > 21:
-                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
-                elif self.game.player_score[i] > self.game.dealer_score:
-                    self.current_stack.set(self.current_stack.get() + self.game.current_bet[i])
-                elif self.game.player_score[i] < self.game.dealer_score:
-                    self.current_stack.set(self.current_stack.get() - self.game.current_bet[i])
-        self.edit_post_game_buttons()
-
+    def post_action_updates(self):
+        self.update_player_hand_label()
+        self.update_player_score_label()
+        self.display_player_hand()
+        if self.game.check_game_over():
+            self.edit_post_game_buttons()
+            self.setup_post_game_screen()
+            
     def play_again(self):
         self.game.play_again()
         self.update_result_label()
@@ -321,7 +300,3 @@ class BlackjackGUI:
         label.grid(row=0, column=1, padx=5)
         self.dealer_hand_labels.append(label)
 
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    gui = BlackjackGUI(root, game)
