@@ -63,11 +63,12 @@ class BlackjackGUI:
         # Labels
         self.player_score_label = self.create_label(f"Player Score: {self.game.player_score} ", self.game_screen, 0, 0)
         self.player_hand_label = self.create_label(f"Player Hand: {self.game.player_hand} ", self.game_screen, 1, 0)
-        self.dealer_score_label = self.create_label(f"Dealer Score: {self.game.dealer_score}: ", self.game_screen, 2, 0)
+        self.dealer_score_label = self.create_label(f"Dealer Score: {self.game.dealer_score} ", self.game_screen, 2, 0)
         self.dealer_hand_label = self.create_label(f"Dealer Hand: {self.game.dealer_hand} ", self.game_screen, 3, 0)
         self.current_bet_label = self.create_label(f"Current Bet: {self.game.current_bet} ", self.game_screen, 4, 0)
         self.current_stack_label = self.create_label(f"Current Stack: {self.game.current_stack} ", self.game_screen, 5, 0)
-        self.result_label = self.create_label("", self.game_screen, 6, 0)
+        self.double_down_label = self.create_label(f"Double Downs: {self.game.double_down_count}", self.game_screen, 6, 0)
+        self.result_label = self.create_label("", self.game_screen, 7, 0)
         self.game_screen.grid(row=0, column=0)
         # Buttons
         button_frame = tk.Frame(self.game_screen)
@@ -77,13 +78,13 @@ class BlackjackGUI:
         self.double_down_button = self.create_button("Double", self.double_down, button_frame, 0, 3, padx=5, pady=10)
         self.surrender_button = self.create_button("Surrender", self.surrender, button_frame, 0, 4, padx=5, pady=10)
         self.play_again_button = self.create_button("Play Again", self.play_again, button_frame, 0, 5, padx=5, pady=10, state=tk.DISABLED)
-        button_frame.grid(row=7, column=0)
+        button_frame.grid(row=8, column=0)
 
         # Player and dealer hands
         self.player_hand_frame = self.create_frame(self.game_screen)
         self.dealer_hand_frame = self.create_frame(self.game_screen)
-        self.player_hand_frame.grid(row=10, column=0)
-        self.dealer_hand_frame.grid(row=11, column=0)
+        self.player_hand_frame.grid(row=11, column=0)
+        self.dealer_hand_frame.grid(row=12, column=0)
 
         self.load_card_images()
 
@@ -133,7 +134,8 @@ class BlackjackGUI:
         self.dealer_hand_label.grid(row=3, column=0)
         self.current_bet_label.grid(row=4, column=0)
         self.current_stack_label.grid(row=5, column=0)
-        self.result_label.grid(row=6, column=0)
+        self.double_down_label.grid(row=6, column=0)
+        self.result_label.grid(row=7, column=0)
 
 
     def display_player_hand(self):
@@ -172,6 +174,9 @@ class BlackjackGUI:
 
     def update_player_score_label(self):
         self.player_score_label.config(text=f"Player Score: {self.game.player_score}")
+    
+    def update_double_down_label(self):
+        self.double_down_label.config(text=f"Double Downs: {self.game.double_down_count}")
 
     def update_player_hand_label(self):
         self.player_hand_label.config(text=f"Player Hand: {self.game.player_hand}")
@@ -209,9 +214,10 @@ class BlackjackGUI:
             self.update_result_label("Cannot split due to insufficient funds or unsplittable hand.")
 
     def double_down(self):
-        self.game.double_down()
-        self.update_player_hand_label()
-        self.display_player_hand()
+        if self.game.double_down():
+            self.post_action_updates()
+        else:
+            self.update_result_label("Cannot double down due to insufficient funds.")
 
     def surrender(self):
         self.game.surrender()
@@ -245,6 +251,7 @@ class BlackjackGUI:
     def post_action_updates(self):
         self.update_player_hand_label()
         self.update_player_score_label()
+        self.update_double_down_label()
         self.display_player_hand()
         if self.game.check_game_over():
             self.edit_post_game_buttons()

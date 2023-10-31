@@ -57,8 +57,9 @@ class BlackjackGame:
         self.place_bet()
     
     def validate_bet(self, bet):
-        if bet > 0 and bet < self.current_stack:
+        if bet > 0 and bet <= self.current_stack:
             self.current_bet = bet
+            self.current_stack -= bet
             return True
         return False
 
@@ -67,12 +68,13 @@ class BlackjackGame:
         self.player_hand[self.current_player_hand].append(card)
         self.player_score[self.current_player_hand] += self.card_values[card[0]]
         if self.player_score[self.current_player_hand] > 21:
+            self.double_down_count.append(0)
             self.current_player_hand += 1
         
 
     def split(self):
         if self.current_stack < self.current_bet:
-            self.update_result_label("Insufficient funds to split.")
+            return False
         else:
             if len(self.player_hand[self.current_player_hand]) == 2 and self.player_hand[self.current_player_hand][0][0] == self.player_hand[self.current_player_hand][1][0]:
                 new_hand = [self.player_hand[self.current_player_hand].pop()]  # Create a new hand and move one card
@@ -80,19 +82,28 @@ class BlackjackGame:
                 self.player_score[self.current_player_hand] -= self.card_values[new_hand[0][0]]  # Update scores
                 self.player_score.append(self.card_values[new_hand[0][0]])
                 self.current_stack -= self.current_bet
-                self.update_player_hand_label()
-                self.display_player_hand()
-            else:
-                self.update_result_label("Cannot split this hand.")
+                return True
+            return False
 
     def double_down(self):
-        pass
+        if self.current_stack >= self.current_bet:
+            self.current_stack -= self.current_bet
+            self.double_down_count[self.current_player_hand] = 1
+            card = self.deal_card()
+            self.player_hand[self.current_player_hand].append(card)
+            self.player_score[self.current_player_hand] += self.card_values[card[0]]
+            self.current_player_hand += 1
+            return True
+        return False
+
+
 
     def surrender(self):
         pass
 
     def stand(self):
         self.current_player_hand += 1
+        self.double_down_count.append(0)
 
     def calculate_result(self):
         if self.dealer_score > 21:
