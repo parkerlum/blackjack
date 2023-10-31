@@ -203,8 +203,10 @@ class BlackjackGUI:
         self.post_action_updates()
 
     def split(self):
-        self.game.split()
-        self.post_action_updates()
+        if self.game.split():
+            self.post_action_updates()
+        else:
+            self.update_result_label("Cannot split due to insufficient funds or unsplittable hand.")
 
     def double_down(self):
         self.game.double_down()

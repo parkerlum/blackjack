@@ -1,5 +1,4 @@
 import random
-from re import A
 
 class BlackjackGame:
     def __init__(self):
