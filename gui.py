@@ -259,6 +259,7 @@ class BlackjackGUI:
             
     def play_again(self):
         self.game.play_again()
+        self.game_screen.grid_forget()
         self.update_result_label()
         self.game_screen.pack_forget()
         self.setup_bet_screen()

@@ -52,9 +52,8 @@ class BlackjackGame:
         self.player_score = [0]
         self.dealer_score = 0
         self.current_player_hand = 0
-        self.update_result_label()
-        self.game_screen.pack_forget()
-        self.place_bet()
+        self.double_down_count = [0]
+        self.deal_initial_cards() 
     
     def validate_bet(self, bet):
         if bet > 0 and bet <= self.current_stack:
@@ -96,8 +95,6 @@ class BlackjackGame:
             return True
         return False
 
-
-
     def surrender(self):
         pass
 
@@ -112,21 +109,18 @@ class BlackjackGame:
             self.handle_dealer_not_busted()
     
     def handle_dealer_busted(self):
-        for score in self.player_score:
-            if score <= 21:
-                self.current_stack += self.current_bet
-            else:
-                self.current_stack -= self.current_bet
+        for i in range(len(self.player_score)):
+            if self.player_score[i] <= 21 and self.double_down_count[i]:
+                self.current_stack += 4 * self.current_bet
+            elif self.player_score[i] <= 21:
+                self.current_stack += 2* self.current_bet
 
     def handle_dealer_not_busted(self):
-        for score in self.player_score:
-            if score > 21:
-
-                self.current_stack -= self.current_bet
-            elif score > self.dealer_score:
+        for i in range(len(self.player_score)):
+            if self.player_score[i] > self.dealer_score and self.double_down_count[i]:
+                self.current_stack += 4 * self.current_bet
+            elif self.player_score[i] <= 21:
                 self.current_stack += self.current_bet
-            elif score < self.dealer_score:
-                self.current_stack -= self.current_bet
 
     def deal_card(self):
         return self.deck.pop()
