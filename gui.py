@@ -50,7 +50,7 @@ class BlackjackGUI:
             else:
                 bet_error_label.config(text="Invalid bet. Please try again.", fg="red")
         
-        play_button = self.create_button("Play", set_current_bet, self.bet_screen, 3, 0, 2)
+        play_button = self.create_button("Play", set_current_bet, self.bet_screen, row=3, column=0, padx=5, pady=10)
 
         self.bet_screen.grid(row=0, column=0)
 
@@ -225,28 +225,7 @@ class BlackjackGUI:
 
     def stand(self):
         self.game.stand()
-        if self.game.current_player_hand == len(self.game.player_hand) - 1:
-            self.hit_button.config(state=tk.DISABLED)
-            self.stand_button.config(state=tk.DISABLED)
-
-            def deal_next_card():
-                if self.game.dealer_score < 17:
-                    card = self.game.deck.deal_card()
-                    self.game.dealer_score += card_values[card[0]]
-                    self.game.dealer_hand.append(card)
-                    self.update_dealer_score_label()
-                    self.update_dealer_hand_label()
-                    self.display_dealer_hand()
-                    self.root.after(500, deal_next_card)
-                else:
-                    self.display_dealer_hand()
-                    self.reveal_result()
-
-            self.display_dealer_hand()
-            self.root.after(500, deal_next_card)
-        else:
-            self.game.current_player_hand += 1
-            self.update_result_label(f"Standing on hand {self.game.current_player_hand}")
+        self.post_action_updates()
 
     def post_action_updates(self):
         self.update_player_hand_label()

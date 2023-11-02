@@ -100,7 +100,8 @@ class BlackjackGame:
 
     def stand(self):
         self.current_player_hand += 1
-        self.double_down_count.append(0)
+        if self.current_player_hand != len(self.player_hand):
+            self.double_down_count.append(0)
 
     def calculate_result(self):
         if self.dealer_score > 21:
