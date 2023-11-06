@@ -185,10 +185,10 @@ class BlackjackGUI:
         self.current_bet_label.config(text=f"Current Bet: {self.game.current_bet}")
 
     def update_current_stack_label(self):
-        self.current_stack_label.config(text=f"Current Stack: {self.current_stack.get()}")
+        self.current_stack_label.config(text=f"Current Stack: {self.game.current_stack}")
 
     def update_current_stack_label_bet(self):
-        self.current_stack_label_bet.config(text=f"Current Stack: {self.current_stack.get()}")
+        self.current_stack_label_bet.config(text=f"Current Stack: {self.game.current_stack}")
 
     def update_result_label(self, label=None):
         if label is not None:
@@ -222,6 +222,7 @@ class BlackjackGUI:
     def surrender(self):
         self.game.surrender()
         self.update_result_label("You surrendered!")
+        self.post_action_updates()
 
     def stand(self):
         self.game.stand()
@@ -231,8 +232,11 @@ class BlackjackGUI:
         self.update_player_hand_label()
         self.update_player_score_label()
         self.update_double_down_label()
+        self.update_dealer_hand_label()
+        self.update_current_stack_label()
         self.display_player_hand()
         if self.game.check_game_over():
+            self.display_dealer_hand()
             self.edit_post_game_buttons()
             self.setup_post_game_screen()
             
@@ -251,15 +255,19 @@ class BlackjackGUI:
         self.surrender_button.config(state=tk.DISABLED)
         self.play_again_button.config(state=tk.NORMAL)
 
-    def display_dealer_hand(self):
-        for label in self.dealer_hand_labels:
-            label.destroy()
-        for i, (rank, suit) in enumerate(self.game.dealer_hand):
+    def display_dealer_hand(self, index=0):
+        if index < len(self.game.dealer_hand):
+            rank, suit = self.game.dealer_hand[index]
             card_image = ImageTk.PhotoImage(self.card_images[(rank, suit)])
             label = tk.Label(self.dealer_hand_frame, image=card_image)
             label.image = card_image
-            label.grid(row=0, column=i, padx=5)
+            label.grid(row=0, column=index, padx=5)
             self.dealer_hand_labels.append(label)
+
+            # Schedule the next card after 1 second
+            self.dealer_hand_frame.after(1000, self.display_dealer_hand, index + 1)
+
+            
 
     def display_player_hand(self):
         for label in self.player_hand_labels:

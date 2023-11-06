@@ -27,11 +27,12 @@ class BlackjackGame:
     
     def check_game_over(self):
         if self.current_player_hand >= len(self.player_hand):
+            if any(score <= 21 for score in self.player_score):
+                self.dealer_showdown()
             self.calculate_result()
             return True
         else:
             return False
-
 
     def deal_initial_cards(self):
         player_card_1 = ('8', 'Hearts')  # Set the first card to '8 of Hearts'
@@ -44,7 +45,6 @@ class BlackjackGame:
         self.dealer_hand.append(dealer_card_1)
         self.dealer_hand.append(dealer_card_2)
         self.dealer_score += self.card_values[dealer_card_1[0]] + self.card_values[dealer_card_2[0]]
-
 
     def play_again(self):
         self.dealer_hand = []
@@ -69,7 +69,6 @@ class BlackjackGame:
         if self.player_score[self.current_player_hand] > 21:
             self.double_down_count.append(0)
             self.current_player_hand += 1
-        
 
     def split(self):
         if self.current_stack < self.current_bet:
@@ -80,6 +79,7 @@ class BlackjackGame:
                 self.player_hand.append(new_hand)
                 self.player_score[self.current_player_hand] -= self.card_values[new_hand[0][0]]  # Update scores
                 self.player_score.append(self.card_values[new_hand[0][0]])
+                self.double_down_count.append(0)
                 self.current_stack -= self.current_bet
                 return True
             return False
@@ -96,14 +96,22 @@ class BlackjackGame:
         return False
 
     def surrender(self):
-        pass
+        self.player_hand.pop(self.current_player_hand)
+        self.double_down_count.pop(self.current_player_hand)
+        self.player_score.pop(self.current_player_hand)
+        self.current_stack += (self.current_bet / 2)
 
     def stand(self):
         self.current_player_hand += 1
-        if self.current_player_hand != len(self.player_hand):
-            self.double_down_count.append(0)
+
+    def dealer_showdown(self):
+        while self.dealer_score < 17:
+            card = self.deal_card()
+            self.dealer_hand.append(card)
+            self.dealer_score += self.card_values[card[0]]
 
     def calculate_result(self):
+        
         if self.dealer_score > 21:
             self.handle_dealer_busted()
         else:
