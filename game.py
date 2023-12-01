@@ -14,7 +14,9 @@ class BlackjackGame:
         self.current_player_hand = 0
         self.double_down_count = [0]
         self.game_end_callback = False
+        self.num_aces = [0]
         self.deck = [(rank, suit) for suit in self.suits for rank in self.ranks]
+        self.weight = 0
 
     def start_game(self, numDecks):
         self.player_hand = [[]]
@@ -27,16 +29,15 @@ class BlackjackGame:
     
     def check_game_over(self):
         if self.current_player_hand >= len(self.player_hand):
-            if any(score <= 21 for score in self.player_score):
-                self.dealer_showdown()
+            self.dealer_showdown()
             self.calculate_result()
             return True
         else:
             return False
 
     def deal_initial_cards(self):
-        player_card_1 = ('8', 'Hearts')  # Set the first card to '8 of Hearts'
-        player_card_2 = ('8', 'Diamonds')
+        player_card_1 = ('A', 'Hearts')  # Set the first card to '8 of Hearts'
+        player_card_2 = ('A', 'Diamonds')
         self.player_hand[0].append(player_card_1)
         self.player_hand[0].append(player_card_2)
         self.player_score[0] += self.card_values[player_card_1[0]] + self.card_values[player_card_2[0]]
@@ -64,11 +65,37 @@ class BlackjackGame:
 
     def hit(self):
         card = self.deal_card()
+        self.calculate_weight(card[0])
         self.player_hand[self.current_player_hand].append(card)
         self.player_score[self.current_player_hand] += self.card_values[card[0]]
+
         if self.player_score[self.current_player_hand] > 21:
-            self.double_down_count.append(0)
-            self.current_player_hand += 1
+            if self.has_ace():
+                if self.bust_with_aces():
+                    self.double_down_count.append(0)
+                    self.current_player_hand += 1
+            else:
+                self.double_down_count.append(0)
+                self.current_player_hand += 1
+    
+    def has_ace(self):
+        for card in self.player_hand[self.current_player_hand]:
+            if card[0] == 'A':
+                return True
+        return False
+
+    def adjust_for_aces(self):
+        aces = self.player_hand[self.current_player_hand].count(('A', 'Hearts')) + self.player_hand[self.current_player_hand].count(('A', 'Diamonds')) + self.player_hand[self.current_player_hand].count(('A', 'Clubs')) + self.player_hand[self.current_player_hand].count(('A', 'Spades'))
+        score = sum(self.card_values[card[0]] for card in self.player_hand[self.current_player_hand])
+        while aces > 0 and score > 21:
+            score -= 10
+            aces -= 1
+        return score 
+        
+    def bust_with_aces(self):
+        if self.adjust_for_aces() > 21 and self.has_ace():
+            return True
+        return False
 
     def split(self):
         if self.current_stack < self.current_bet:
@@ -89,8 +116,15 @@ class BlackjackGame:
             self.current_stack -= self.current_bet
             self.double_down_count[self.current_player_hand] = 1
             card = self.deal_card()
+            self.calculate_weight(card[0])
             self.player_hand[self.current_player_hand].append(card)
             self.player_score[self.current_player_hand] += self.card_values[card[0]]
+            if self.player_score[self.current_player_hand] > 21 and self.has_ace():
+                if self.has_ace():
+                    self.adjust_for_aces()
+                else:
+                    self.double_down_count.append(0)
+                    self.current_player_hand += 1
             self.current_player_hand += 1
             return True
         return False
@@ -133,5 +167,12 @@ class BlackjackGame:
 
     def deal_card(self):
         return self.deck.pop()
+
+    def calculate_weight(self, card):
+        if card == "2" or card == "3" or card == "4" or card == "5" or card == "6":
+            self.weight += 1
+        elif card == "10" or card == "J" or card == "Q" or card == "K" or card == "A":
+            self.weight -= 1
+
 
 
