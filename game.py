@@ -36,13 +36,11 @@ class BlackjackGame:
             return False
 
     def deal_initial_cards(self):
-        player_card_1 = ('A', 'Hearts')  # Set the first card to '8 of Hearts'
-        player_card_2 = ('A', 'Diamonds')
-        self.player_hand[0].append(player_card_1)
-        self.player_hand[0].append(player_card_2)
-        self.player_score[0] += self.card_values[player_card_1[0]] + self.card_values[player_card_2[0]]
+        self.hit()
+        self.hit()
         dealer_card_1 = self.deal_card()
         dealer_card_2 = self.deal_card()
+        self.calculate_weight(dealer_card_1[0])
         self.dealer_hand.append(dealer_card_1)
         self.dealer_hand.append(dealer_card_2)
         self.dealer_score += self.card_values[dealer_card_1[0]] + self.card_values[dealer_card_2[0]]
@@ -139,13 +137,14 @@ class BlackjackGame:
         self.current_player_hand += 1
 
     def dealer_showdown(self):
+        self.calculate_weight(self.dealer_hand[1][0])
         while self.dealer_score < 17:
             card = self.deal_card()
+            self.calculate_weight(card[0])
             self.dealer_hand.append(card)
             self.dealer_score += self.card_values[card[0]]
 
     def calculate_result(self):
-        
         if self.dealer_score > 21:
             self.handle_dealer_busted()
         else:
