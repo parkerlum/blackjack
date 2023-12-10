@@ -68,8 +68,10 @@ class BlackjackGUI:
         self.current_bet_label = self.create_label(f"Current Bet: {self.game.current_bet} ", self.game_screen, 4, 0)
         self.current_stack_label = self.create_label(f"Current Stack: {self.game.current_stack} ", self.game_screen, 5, 0)
         self.double_down_label = self.create_label(f"Double Downs: {self.game.double_down_count}", self.game_screen, 6, 0)
-        self.result_label = self.create_label("", self.game_screen, 7, 0)
+        self.running_count_label = self.create_label(f"Running Count: {self.game.weight}", self.game_screen, 7, 0)
+        self.result_label = self.create_label("", self.game_screen, 8, 0)
         self.game_screen.grid(row=0, column=0)
+        
         # Buttons
         button_frame = tk.Frame(self.game_screen)
         self.hit_button = self.create_button("Hit", self.hit, button_frame, 0, 0, padx=5, pady=10)
@@ -78,7 +80,8 @@ class BlackjackGUI:
         self.double_down_button = self.create_button("Double", self.double_down, button_frame, 0, 3, padx=5, pady=10)
         self.surrender_button = self.create_button("Surrender", self.surrender, button_frame, 0, 4, padx=5, pady=10)
         self.play_again_button = self.create_button("Play Again", self.play_again, button_frame, 0, 5, padx=5, pady=10, state=tk.DISABLED)
-        button_frame.grid(row=8, column=0)
+        self.toggle_running_count_button = self.create_button("Toggle Count", self.toggle_running_count_label_visibility, button_frame, 0, 6, padx=5, pady=10)
+        button_frame.grid(row=9, column=0)
 
         # Player and dealer hands
         self.player_hand_frame = self.create_frame(self.game_screen)
@@ -135,7 +138,8 @@ class BlackjackGUI:
         self.current_bet_label.grid(row=4, column=0)
         self.current_stack_label.grid(row=5, column=0)
         self.double_down_label.grid(row=6, column=0)
-        self.result_label.grid(row=7, column=0)
+        self.running_count_label.grid(row=7, column=0)
+        self.result_label.grid(row=8, column=0)
 
 
     def display_player_hand(self):
@@ -187,14 +191,22 @@ class BlackjackGUI:
     def update_current_stack_label(self):
         self.current_stack_label.config(text=f"Current Stack: {self.game.current_stack}")
 
-    def update_current_stack_label_bet(self):
-        self.current_stack_label_bet.config(text=f"Current Stack: {self.game.current_stack}")
-
     def update_result_label(self, label=None):
         if label is not None:
             self.result_label.config(text=f"{label}")
         else:
             self.result_label.config(text="")
+
+    def update_running_count_label(self):
+        self.running_count_label.config(text=f"Running Count: {self.game.weight}")
+       
+
+    def toggle_running_count_label_visibility(self): 
+        if self.running_count_label.cget("text"):
+            self.running_count_label.config(text="")
+        else:
+            self.update_running_count_label()
+
 
     def start_game_from_main(self):
         self.game.current_stack = int(self.stack_entry.get())
@@ -234,8 +246,10 @@ class BlackjackGUI:
         self.update_double_down_label()
         self.update_dealer_hand_label()
         self.update_current_stack_label()
+        self.update_running_count_label()
         self.display_player_hand()
         if self.game.check_game_over():
+            self.update_running_count_label()
             self.display_dealer_hand()
             self.edit_post_game_buttons()
             self.setup_post_game_screen()
